@@ -1,16 +1,63 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { FontAwesome } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { tutorials } from '@/data/tutorials';
+import { fetchTutorialById, Tutorial } from '@/lib/tutorialApi';
 import { useBookmarks } from '@/components/useBookmarks';
 
 export default function TutorialDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const tutorial = tutorials.find((item) => item.id === id);
+  const [tutorial, setTutorial] = useState<Tutorial | null>(null);
+  const [loading, setLoading] = useState(true);
   const { isBookmarked, toggleBookmark } = useBookmarks();
+
+  useEffect(() => {
+    let active = true;
+
+    const loadTutorial = async () => {
+      if (!id) {
+        if (active) {
+          setTutorial(null);
+          setLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const data = await fetchTutorialById(id);
+        if (active) {
+          setTutorial(data);
+        }
+      } catch (error) {
+        if (active) {
+          setTutorial(null);
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadTutorial();
+
+    return () => {
+      active = false;
+    };
+  }, [id]);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar style="dark" />
+        <View style={styles.notFound}>
+          <Text style={styles.notFoundTitle}>Loading tutorial...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (!tutorial) {
     return (

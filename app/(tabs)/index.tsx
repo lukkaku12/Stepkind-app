@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { tutorials } from '@/data/tutorials';
+import { fetchTutorials, Tutorial } from '@/lib/tutorialApi';
 import { useBookmarks } from '@/components/useBookmarks';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -20,6 +20,20 @@ import { useFocusEffect } from '@react-navigation/native';
 export default function TabOneScreen() {
   const { isBookmarked, toggleBookmark } = useBookmarks();
   const [profileName, setProfileName] = useState<string | null>(null);
+  const [tutorials, setTutorials] = useState<Tutorial[]>([]);
+
+  useEffect(() => {
+    const loadTutorials = async () => {
+      try {
+        const data = await fetchTutorials();
+        setTutorials(data);
+      } catch (error) {
+        setTutorials([]);
+      }
+    };
+
+    void loadTutorials();
+  }, []);
 
   const loadProfile = useCallback(async () => {
     try {

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FontAwesome } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -11,32 +11,54 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { tutorials } from '@/data/tutorials';
+import { fetchTutorials, searchSemanticTutorials, Tutorial } from '@/lib/tutorialApi';
 import { useBookmarks } from '@/components/useBookmarks';
 
 export default function SearchScreen() {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState<Tutorial[]>([]);
   const { isBookmarked, toggleBookmark } = useBookmarks();
   const { showAll } = useLocalSearchParams<{ showAll?: string }>();
   const shouldShowAll = showAll === '1';
 
   useEffect(() => {
-    if (!query.trim()) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    const timer = setTimeout(() => setLoading(false), 450);
-    return () => clearTimeout(timer);
-  }, [query]);
+    let active = true;
 
-  const results = useMemo(() => {
-    const trimmed = query.trim().toLowerCase();
-    if (!trimmed) return shouldShowAll ? tutorials : [];
-    return tutorials.filter((tutorial) =>
-      `${tutorial.title} ${tutorial.focus}`.toLowerCase().includes(trimmed),
-    );
+    const loadResults = async () => {
+      const trimmed = query.trim();
+
+      if (!trimmed && !shouldShowAll) {
+        setResults([]);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const data = trimmed
+          ? await searchSemanticTutorials(trimmed, 8)
+          : await fetchTutorials();
+
+        if (active) {
+          setResults(data);
+        }
+      } catch (error) {
+        if (active) {
+          setResults([]);
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadResults();
+
+    return () => {
+      active = false;
+    };
   }, [query, shouldShowAll]);
 
   return (
