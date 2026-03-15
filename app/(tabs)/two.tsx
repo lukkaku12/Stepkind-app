@@ -1,14 +1,28 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FontAwesome } from '@expo/vector-icons';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { tutorials } from '@/data/tutorials';
+import { fetchTutorials, Tutorial } from '@/lib/tutorialApi';
 import { useBookmarks } from '@/components/useBookmarks';
 import { router } from 'expo-router';
 
 export default function TabTwoScreen() {
   const { bookmarkedIds, toggleBookmark, refresh } = useBookmarks();
+  const [tutorials, setTutorials] = useState<Tutorial[]>([]);
+
+  useEffect(() => {
+    const loadTutorials = async () => {
+      try {
+        const data = await fetchTutorials();
+        setTutorials(data);
+      } catch (error) {
+        setTutorials([]);
+      }
+    };
+
+    void loadTutorials();
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -18,7 +32,7 @@ export default function TabTwoScreen() {
 
   const savedTutorials = useMemo(
     () => tutorials.filter((tutorial) => bookmarkedIds.includes(tutorial.id)),
-    [bookmarkedIds],
+    [bookmarkedIds, tutorials],
   );
 
   if (savedTutorials.length === 0) {
